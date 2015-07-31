@@ -1,0 +1,206 @@
+<!-- <div>Maze Generator</div> -->
+<canvas id="a" width="1001" height="1001" style='margin: 10px; border: 2px solid #88A; padding: 2px'></canvas>
+
+<script>
+
+// TODO - DO NOT CHANGE COLOR when ROLLING BACK over existing nodes
+
+var MAZE = {
+
+ maxX: 1000,  // pixels
+ maxY: 1000,  // pixels
+ dx: 20,      // cell.X pixels
+ dy: 20,      // cell.Y pixels
+ maze: [], // 2d maze
+ mx: 0,    // points (max X)
+ my: 0,
+ pos_history: [],
+
+ wp: [1, 1],  // worm X and Y
+ wc: 1,        // worm color
+
+ goal: 0,     // goal==1 - success
+
+ c: document.getElementById("a").getContext("2d"),
+
+ // x,y - points 
+ set: function(x, y, nn) {
+    //this.c.fillStyle = "#EEF";
+    var r = (nn & 3)  << 6;        // 0,32,64,96,..224
+    var g = ((nn >> 2) & 3) << 6;
+    var b = ((nn >> 4) & 3) << 6;  // 0,16,32,48,...112
+
+    var cb = 1; // cell border padding
+
+    g += (nn & 1) << 5;
+    // console.log([r,g,b]);
+
+    MAZE.c.fillStyle = 'rgb('+(255-r*0.75)+','+(255-g)+','+(255-b)+')';
+
+    
+
+    if (nn == -1) { // wall
+       MAZE.c.fillStyle = "#f00";
+       cb = 0;
+    }
+    if (nn == 65) { // START
+       MAZE.c.fillStyle = "#0f0";   
+       cb = -2;
+    }
+    if (nn == -2) { // END
+       MAZE.c.fillStyle = "#00f";   
+       cb = -2;
+    }
+
+     MAZE.c.fillRect(x*this.dx+cb, y*this.dy+cb, this.dx-2*cb, this.dy-2*cb);
+     MAZE.maze[x][y] = nn;
+ },
+
+ init: function() {
+    this.c.fillRect(0,0, this.maxX, this.maxY)
+    for (var x = 0; x <= this.maxX; x += this.dx) {
+      this.c.moveTo(x, 0);
+      this.c.lineTo(x, this.maxY);
+    }
+    for (var y = 0; y <= this.maxY; y += this.dy) {
+      this.c.moveTo(0, y);
+      this.c.lineTo(this.maxX, y);
+    }
+    this.c.strokeStyle = "#AAA";
+    this.c.stroke();
+
+    this.mx = this.maxX/this.dx; // points (max X)
+    this.my = this.maxY/this.dy; // points (max Y)
+    
+
+    for (var x=0; x < this.mx; x++) {
+       this.maze[x] = [];
+       for (var y=0; y < this.my; y++) {
+          this.maze[x][y]=0;
+       }
+    }
+
+    // replace with think line
+    for (var x=0; x < this.mx; x++) {
+	MAZE.set(x, 0, -1);	
+	MAZE.set(x, this.my-1, -1);
+    }
+
+    // replace with think line
+    for (var y=0; y < this.my; y++) {
+	MAZE.set(0, y, -1);	
+	MAZE.set(this.mx-1, y, -1);	
+    }
+
+    // console.log(this.maze);
+
+    MAZE.set(this.wp[0], this.wp[1], 65); // START
+    MAZE.set(this.wp[0]-1, this.wp[1], 65); // START
+    MAZE.set(this.wp[0]-1, this.wp[1]-1, 65); // START
+    MAZE.set(this.wp[0], this.wp[1]-1, 65); // START
+
+    MAZE.set(this.mx-2, this.my-2, -2); // END
+    MAZE.set(this.mx-2, this.my-1, -2); // END
+    MAZE.set(this.mx-1, this.my-2, -2); // END
+    MAZE.set(this.mx-1, this.my-1, -2); // END
+
+    MAZE.set(this.mx-3, this.my-3, -2); // END
+    MAZE.set(this.mx-3, this.my-2, -2); // END
+    MAZE.set(this.mx-2, this.my-3, -2); // END
+ },
+
+ // NO MORE PIXELS 
+
+
+ dirMove: [[0,-1],[1,0],[0,1],[-1,0]],
+
+// try to move worm to new location
+// if can, plot new location, move worm
+_wormMove: function(dir) { // 1=OK, 0=FAIL
+    var dm = MAZE.dirMove[dir];
+    var nx = MAZE.wp[0]+dm[0];
+    var ny = MAZE.wp[1]+dm[1];
+
+    if (MAZE.maze[nx][ny] == -2) {
+       MAZE.goal = 1;
+       MAZE.set(nx, ny, -2);
+       return 1;
+    };
+
+    if (MAZE.maze[nx][ny] != 0) { return 0};
+
+    // console.log("_m", [nx, ny]);
+
+    if (MAZE.maze[nx+dm[0]][ny+dm[1]] > 0) { // two steps ahead. can be wall
+	return 0;
+    }
+    dm = MAZE.dirMove[(dir-1)&3];
+    if (MAZE.maze[nx+dm[0]][ny+dm[1]] > 0) { // forward+left
+	return 0;
+    }
+    dm = MAZE.dirMove[(dir+1)&3];
+    if (MAZE.maze[nx+dm[0]][ny+dm[1]] > 0) { // forward+right
+	return 0;
+    }
+    var np = [nx, ny];
+    MAZE.pos_history.push(np);
+    MAZE.wp = np;
+    /// console.log(np);
+    MAZE.set(nx, ny, MAZE.wc);
+    return 1;
+},
+
+
+ wormMove: function() {
+    if (MAZE.wp == undefined) {
+        console.log("FAIL");
+        return;
+    }
+
+    if (MAZE.goal == 1) {
+        console.log("GOAL");
+        return;
+    }
+
+    console.log("!MOVE", MAZE.wp);
+    var dir = Math.floor(Math.random() * 4); // 0..3, 0=up, 1=right, 2=down, 3=left
+
+    if (MAZE._wormMove(dir)==1) { return }
+    if (MAZE._wormMove((dir+1)&3)==1) { return }
+    if (MAZE._wormMove((dir+2)&3)==1) { return }
+    if (MAZE._wormMove((dir+3)&3)==1) { return }
+
+    //MAZE.wp = [Math.floor(Math.random() * MAZE.mx), Math.floor(Math.random() * MAZE.my)];
+    console.log("rolling back", dir, MAZE.wp);
+    // MAZE.set(MAZE.wp[0], MAZE.wp[1], MAZE.wc++);
+    MAZE.wp = MAZE.pos_history.pop();
+    
+
+    MAZE.wc++;
+
+ },
+
+ //window.setInterval(function(){ MAZE.RndDots();}, 100);
+ RndDot: function() {
+    var x=Math.floor(Math.random() * 50);
+    var y=Math.floor(Math.random() * 50);
+    var n=Math.floor(Math.random() * 64);
+    MAZE.set(x, y, n);
+ }
+
+}
+
+MAZE.init();
+
+window.setInterval(MAZE.wormMove, 5);
+
+
+// 64 possible supported colors
+//for(var nn=0; nn<64; nn++) {
+//    MAZE.set(nn % 32, (nn-(nn%32))/32, nn);
+//}
+
+
+
+
+</script>
