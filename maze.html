@@ -1,5 +1,6 @@
 <!-- <div>Maze Generator</div> -->
 <canvas id="a" width="1001" height="1001" style='margin: 10px; border: 2px solid #88A; padding: 2px'></canvas>
+<canvas id="b" width="1001" height="1001" style='margin: 10px; border: 2px solid #88A; padding: 2px'></canvas>
 
 <script>
 
@@ -27,7 +28,8 @@ var MAZE = {
 
  goal: 0,     // goal==1 - success
 
- c: document.getElementById("a").getContext("2d"),
+ c:  document.getElementById("a").getContext("2d"),
+ c2: document.getElementById("b").getContext("2d"),
 
  interval_handler : 0,
 
@@ -78,7 +80,6 @@ var MAZE = {
     this.mx = this.maxX/this.dx; // points (max X)
     this.my = this.maxY/this.dy; // points (max Y)
 
-
     for (var x=0; x < this.mx; x++) {
        this.maze[x] = [];
        for (var y=0; y < this.my; y++) {
@@ -88,7 +89,7 @@ var MAZE = {
 
     // replace with think line
     for (var x=0; x < this.mx; x++) {
-	     MAZE.set(x, 0, -1);
+        MAZE.set(x, 0, -1);
 	      MAZE.set(x, this.my-1, -1);
     }
 
@@ -166,7 +167,8 @@ _wormMove: function(dir) { // 1=OK, 0=FAIL
 
  stop: function(msg) {
    console.log(msg);
-   window.clearInterval(MAZE.interval_handler)
+   if (MAZE.interval_handler)
+      window.clearInterval(MAZE.interval_handler);
    return "DONE";
  },
 
@@ -188,19 +190,85 @@ _wormMove: function(dir) { // 1=OK, 0=FAIL
     console.log("rolling back", dir, MAZE.wp);
     // MAZE.set(MAZE.wp[0], MAZE.wp[1], MAZE.wc++);
     MAZE.wp = MAZE.pos_history.pop();
-    MAZE.wc++;
-    return 0;
+    MAZE.wc = (MAZE.wc+1) & 63;
+    if (! MAZE.wc) MAZE.wc = 1;
+    return 0
  },
 
  run: function() {
     while (MAZE.wormMove() == 0);
- }
+ },
 
+// draw a maze on canvas b
+
+// draw a line
+__draw: function(x, y, x2, y2) {
+    MAZE.c2.moveTo(x*this.dx, y*this.dy)
+    MAZE.c2.lineTo(x2*this.dx, y2*this.dy)
+},
+ // draw curved maze
+ _draw: function(x, y, s) {
+   console.log([x, y, s])
+     if ((s & 5) == 5) // up-down
+        MAZE.__draw(x+0.7, y, x+0.7, y+1.2);
+     if ((s & 10) == 10) // left-right
+        MAZE.__draw(x, y+0.7, x+1.2, y+0.7);
+
+     if ((s & 3) == 3) // up-right
+       MAZE.__draw(x+0.7, y, x+1.2, y+0.7);
+     if ((s & 6) == 6) // down-right
+       MAZE.__draw(x+0.7, y+1.2, x+1.2, y+0.7);
+
+     if ((s & 9) == 9) // up-left
+       MAZE.__draw(x+0.7, y, x, y+0.7);
+     if ((s & 12) == 12) // down-left
+       MAZE.__draw(x+0.7, y+1.2, x, y+0.7);
+
+     if ((s&1)) // up
+        MAZE.__draw(x+0.5, y, x+0.5, y+0.5);
+     if ((s&2)) // right
+           MAZE.__draw(x+1, y+0.5, x+0.5, y+0.5);
+     if ((s&4)) // down
+           MAZE.__draw(x+0.5, y+1, x+0.5, y+0.5);
+     if ((s&8)) // left
+           MAZE.__draw(x, y+0.5, x+0.5, y+0.5);
+
+ },
+
+ draw: function() {
+   c2 = MAZE.c2;
+   c2.fillStyle = "#040"
+   c2.lineWidth = 11
+   c2.beginPath()
+   m = MAZE.maze;
+   m[this.mx-1][this.my-1] = 1;
+   m[this.mx-1][this.my-2] = 1;
+   m[this.mx-2][this.my-1] = 1;
+   m[this.mx-2][this.my-2] = 1;
+   m[this.mx-3][this.my-3] = 1;
+   m[this.mx-3][this.my-2] = 1;
+   m[this.mx-2][this.my-3] = 1;
+
+   for (var x=1; x < this.mx-1; x++) {
+      for (var y=1; y < this.my-1; y++) {
+         if (m[x][y] == 0)
+            continue;
+         s = 0
+         if (m[x][y-1] > 0) s |= 1; // up
+         if (m[x+1][y] > 0) s |= 2; // right
+         if (m[x][y+1] > 0) s |= 4; // down
+         if (m[x-1][y] > 0) s |= 8; // left
+         MAZE._draw(x, y, s)
+      }
+   }
+   c2.stroke();
+ }
 
 }
 
 MAZE.init();
 MAZE.run()
+MAZE.draw()
 //MAZE.interval_handler = window.setInterval(MAZE.wormMove, 5);
 
 </script>
