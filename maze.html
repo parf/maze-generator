@@ -208,7 +208,6 @@ __draw: function(x, y, x2, y2) {
 },
  // draw curved maze
  _draw: function(x, y, s) {
-   console.log([x, y, s])
      if ((s & 5) == 5) // up-down
         MAZE.__draw(x+0.7, y, x+0.7, y+1.2);
      if ((s & 10) == 10) // left-right
