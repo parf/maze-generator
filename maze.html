@@ -24,6 +24,8 @@ var MAZE = {
 
  c: document.getElementById("a").getContext("2d"),
 
+ interval_handler : 0,
+
  // x,y - points
  set: function(x, y, nn) {
     //this.c.fillStyle = "#EEF";
@@ -161,11 +163,13 @@ _wormMove: function(dir) { // 1=OK, 0=FAIL
  wormMove: function() {
     if (MAZE.wp == undefined) {
         console.log("FAIL");
+        window.clearInterval(MAZE.interval_handler)
         return;
     }
 
     if (MAZE.goal == 1) {
         console.log("GOAL");
+        window.clearInterval(MAZE.interval_handler)
         return;
     }
 
@@ -202,7 +206,7 @@ _wormMove: function(dir) { // 1=OK, 0=FAIL
 
 MAZE.init();
 
-window.setInterval(MAZE.wormMove, 5);
+MAZE.interval_handler = window.setInterval(MAZE.wormMove, 5);
 
 
 // 64 possible supported colors
