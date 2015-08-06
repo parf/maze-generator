@@ -212,7 +212,9 @@ __draw: function(x, y, x2, y2) {
     MAZE.c2.moveTo(x*this.dx, y*this.dy)
     MAZE.c2.lineTo(x2*this.dx, y2*this.dy)
 },
+
  // draw curved maze
+ // todo: use ctx.arc(x,y,r, Math.PI,Math.PI/2); for round 
  _draw: function(x, y, s) {
      if ((s & 5) == 5) // up-down
         MAZE.__draw(x+0.7, y, x+0.7, y+1.2);
