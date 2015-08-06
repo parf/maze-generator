@@ -1,4 +1,4 @@
 # maze-generator
 JavaScript Maze Generator
 
-simple generator (proof of concept) for my soni`s unity game
+Simple generator (proof of concept) for 3d flying maze game

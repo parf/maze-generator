@@ -3,8 +3,6 @@
 
 <script>
 
-// TODO - DO NOT CHANGE COLOR when ROLLING BACK over existing nodes
-
 var MAZE = {
 
  maxX: 1000,  // pixels
@@ -15,15 +13,18 @@ var MAZE = {
  mx: 0,    // points (max X)
  my: 0,
  pos_history: [],
+ nn: 0,        // NN cell generated
 
- wp: [1, 1],  // worm X and Y
+ wp: [1, 1],   // worm X and Y
+ dir: 0,       // 0=up, 1=right, 2=down, 3=left
+ dirMove: [[0,-1],[1,0],[0,1],[-1,0]],
  wc: 1,        // worm color
 
  goal: 0,     // goal==1 - success
 
  c: document.getElementById("a").getContext("2d"),
 
- // x,y - points 
+ // x,y - points
  set: function(x, y, nn) {
     //this.c.fillStyle = "#EEF";
     var r = (nn & 3)  << 6;        // 0,32,64,96,..224
@@ -37,18 +38,16 @@ var MAZE = {
 
     MAZE.c.fillStyle = 'rgb('+(255-r*0.75)+','+(255-g)+','+(255-b)+')';
 
-    
-
     if (nn == -1) { // wall
        MAZE.c.fillStyle = "#f00";
        cb = 0;
     }
     if (nn == 65) { // START
-       MAZE.c.fillStyle = "#0f0";   
+       MAZE.c.fillStyle = "#0f0";
        cb = -2;
     }
     if (nn == -2) { // END
-       MAZE.c.fillStyle = "#00f";   
+       MAZE.c.fillStyle = "#00f";
        cb = -2;
     }
 
@@ -71,7 +70,7 @@ var MAZE = {
 
     this.mx = this.maxX/this.dx; // points (max X)
     this.my = this.maxY/this.dy; // points (max Y)
-    
+
 
     for (var x=0; x < this.mx; x++) {
        this.maze[x] = [];
@@ -82,14 +81,14 @@ var MAZE = {
 
     // replace with think line
     for (var x=0; x < this.mx; x++) {
-	MAZE.set(x, 0, -1);	
-	MAZE.set(x, this.my-1, -1);
+	     MAZE.set(x, 0, -1);
+	      MAZE.set(x, this.my-1, -1);
     }
 
     // replace with think line
     for (var y=0; y < this.my; y++) {
-	MAZE.set(0, y, -1);	
-	MAZE.set(this.mx-1, y, -1);	
+	     MAZE.set(0, y, -1);
+	      MAZE.set(this.mx-1, y, -1);
     }
 
     // console.log(this.maze);
@@ -109,10 +108,9 @@ var MAZE = {
     MAZE.set(this.mx-2, this.my-3, -2); // END
  },
 
- // NO MORE PIXELS 
+ // NO MORE PIXELS
 
 
- dirMove: [[0,-1],[1,0],[0,1],[-1,0]],
 
 // try to move worm to new location
 // if can, plot new location, move worm
@@ -132,21 +130,30 @@ _wormMove: function(dir) { // 1=OK, 0=FAIL
     // console.log("_m", [nx, ny]);
 
     if (MAZE.maze[nx+dm[0]][ny+dm[1]] > 0) { // two steps ahead. can be wall
-	return 0;
+	     return 0;
     }
     dm = MAZE.dirMove[(dir-1)&3];
     if (MAZE.maze[nx+dm[0]][ny+dm[1]] > 0) { // forward+left
-	return 0;
+	     return 0;
     }
     dm = MAZE.dirMove[(dir+1)&3];
     if (MAZE.maze[nx+dm[0]][ny+dm[1]] > 0) { // forward+right
-	return 0;
+	     return 0;
     }
     var np = [nx, ny];
     MAZE.pos_history.push(np);
     MAZE.wp = np;
     /// console.log(np);
     MAZE.set(nx, ny, MAZE.wc);
+    MAZE.dir = dir;
+    MAZE.nn++;
+
+    if ((MAZE.nn & 15) == 15) {
+        var new_pos = Math.floor(Math.random() * MAZE.pos_history.length);
+        MAZE.wp = MAZE.pos_history[new_pos]; //.splice(new_pos-1, 1, np)
+        console.log("new position is "+MAZE.wp)
+    }
+
     return 1;
 },
 
@@ -162,9 +169,15 @@ _wormMove: function(dir) { // 1=OK, 0=FAIL
         return;
     }
 
-    console.log("!MOVE", MAZE.wp);
-    var dir = Math.floor(Math.random() * 4); // 0..3, 0=up, 1=right, 2=down, 3=left
-
+    // console.log("!MOVE", MAZE.wp);
+    var new_dir = Math.floor(Math.random() * 4); // 0=left, 1=right, 2+ - keep same dir
+    var dir = MAZE.dir;
+    if (new_dir == 0) {
+        dir = (dir-1) & 3;
+    }
+    if (new_dir == 1) {
+        dir = (dir+1) & 3;
+    }
     if (MAZE._wormMove(dir)==1) { return }
     if (MAZE._wormMove((dir+1)&3)==1) { return }
     if (MAZE._wormMove((dir+2)&3)==1) { return }
@@ -174,10 +187,7 @@ _wormMove: function(dir) { // 1=OK, 0=FAIL
     console.log("rolling back", dir, MAZE.wp);
     // MAZE.set(MAZE.wp[0], MAZE.wp[1], MAZE.wc++);
     MAZE.wp = MAZE.pos_history.pop();
-    
-
     MAZE.wc++;
-
  },
 
  //window.setInterval(function(){ MAZE.RndDots();}, 100);
