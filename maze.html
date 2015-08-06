@@ -95,9 +95,15 @@ var MAZE = {
 
     // replace with think line
     for (var y=0; y < this.my; y++) {
-	     MAZE.set(0, y, -1);
+ 	      MAZE.set(0, y, -1);
 	      MAZE.set(this.mx-1, y, -1);
     }
+
+    // extra wall
+   for (var x=1; x < 30 ; x++) {
+         MAZE.set(this.mx-x, this.my-10, -1);
+         MAZE.set(x, 10, -1);
+   }
 
     // console.log(this.maze);
 
@@ -236,7 +242,7 @@ __draw: function(x, y, x2, y2) {
 
  draw: function() {
    c2 = MAZE.c2;
-   c2.fillStyle = "#040"
+   c2.strokeStyle = "#080"
    c2.lineWidth = 11
    c2.beginPath()
    m = MAZE.maze;
@@ -250,7 +256,7 @@ __draw: function(x, y, x2, y2) {
 
    for (var x=1; x < this.mx-1; x++) {
       for (var y=1; y < this.my-1; y++) {
-         if (m[x][y] == 0)
+         if (m[x][y] == 0 || m[x][y] == -1)
             continue;
          s = 0
          if (m[x][y-1] > 0) s |= 1; // up
