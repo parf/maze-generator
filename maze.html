@@ -3,6 +3,11 @@
 
 <script>
 
+// TODO:
+//   * cave structures
+//   * loops
+//   * treasure locations
+
 var MAZE = {
 
  maxX: 1000,  // pixels
@@ -159,62 +164,43 @@ _wormMove: function(dir) { // 1=OK, 0=FAIL
     return 1;
 },
 
+ stop: function(msg) {
+   console.log(msg);
+   window.clearInterval(MAZE.interval_handler)
+   return "DONE";
+ },
 
- wormMove: function() {
-    if (MAZE.wp == undefined) {
-        console.log("FAIL");
-        window.clearInterval(MAZE.interval_handler)
-        return;
-    }
-
-    if (MAZE.goal == 1) {
-        console.log("GOAL");
-        window.clearInterval(MAZE.interval_handler)
-        return;
-    }
+ wormMove: function() { // 0-in-progress, "DONE" = finished
+    if (MAZE.wp == undefined) return MAZE.stop("FAIL");
+    if (MAZE.goal == 1)       return MAZE.stop("GOAL");
 
     // console.log("!MOVE", MAZE.wp);
     var new_dir = Math.floor(Math.random() * 4); // 0=left, 1=right, 2+ - keep same dir
     var dir = MAZE.dir;
-    if (new_dir == 0) {
-        dir = (dir-1) & 3;
-    }
-    if (new_dir == 1) {
-        dir = (dir+1) & 3;
-    }
-    if (MAZE._wormMove(dir)==1) { return }
-    if (MAZE._wormMove((dir+1)&3)==1) { return }
-    if (MAZE._wormMove((dir+2)&3)==1) { return }
-    if (MAZE._wormMove((dir+3)&3)==1) { return }
+    if (new_dir == 0) dir = (dir-1) & 3;
+    if (new_dir == 1) dir = (dir+1) & 3;
+    if (MAZE._wormMove(dir)==1)  return 0;
+    if (MAZE._wormMove((dir+1)&3)==1) return 0;
+    if (MAZE._wormMove((dir+2)&3)==1) return 0;
+    if (MAZE._wormMove((dir+3)&3)==1) return 0;
 
     //MAZE.wp = [Math.floor(Math.random() * MAZE.mx), Math.floor(Math.random() * MAZE.my)];
     console.log("rolling back", dir, MAZE.wp);
     // MAZE.set(MAZE.wp[0], MAZE.wp[1], MAZE.wc++);
     MAZE.wp = MAZE.pos_history.pop();
     MAZE.wc++;
+    return 0;
  },
 
- //window.setInterval(function(){ MAZE.RndDots();}, 100);
- RndDot: function() {
-    var x=Math.floor(Math.random() * 50);
-    var y=Math.floor(Math.random() * 50);
-    var n=Math.floor(Math.random() * 64);
-    MAZE.set(x, y, n);
+ run: function() {
+    while (MAZE.wormMove() == 0);
  }
+
 
 }
 
 MAZE.init();
-
-MAZE.interval_handler = window.setInterval(MAZE.wormMove, 5);
-
-
-// 64 possible supported colors
-//for(var nn=0; nn<64; nn++) {
-//    MAZE.set(nn % 32, (nn-(nn%32))/32, nn);
-//}
-
-
-
+MAZE.run()
+//MAZE.interval_handler = window.setInterval(MAZE.wormMove, 5);
 
 </script>
